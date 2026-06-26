@@ -5,7 +5,7 @@ A multi-agent vulnerability scanner for GitHub repositories, Docker images, and 
 ## Features
 
 - **Dependency CVEs**: scans lock files against OSV.dev (npm, pip, Ruby, Go, Rust, Java, PHP)
-- **SAST**: 55 custom Semgrep rules across 7 languages (Python, JS, Java, PHP, Go, Ruby, C#)
+- **SAST**: custom rules (55 rules, 7 languages) + Semgrep community packs auto-selected by detected language (`p/owasp-top-ten`, `p/secrets`, `p/python`, `p/javascript`, ...)
 - **Docker image scanning**: Trivy-backed layer analysis
 - **LLM code review**: 3-pass analysis (app understanding -> file-by-file -> cross-file synthesis). Finds IDOR, auth bypass, mass assignment, hardcoded secrets, business logic flaws
 - **CVE gap analysis**: LLM-discovered CVEs validated against OSV API before inclusion
@@ -39,7 +39,7 @@ scan.py
 | Agent | Role | Tool |
 |-------|------|------|
 | `DepAgent` | Scans lock files for known CVEs | OSV.dev API |
-| `SASTAgent` | Static analysis (55 rules, 7 languages) | Semgrep |
+| `SASTAgent` | Static analysis — custom rules + Semgrep community packs | Semgrep |
 | `GitHistoryAgent` | Finds secrets deleted from git history | git |
 | `LLMScanAgent` | Deep code review (IDOR, auth bypass, logic flaws) | DeepSeek V3 |
 | `CVEGapAgent` | Discovers CVEs beyond OSV, validates each one | DeepSeek V3 + OSV |
@@ -119,6 +119,7 @@ OPENAI_API_KEY=sk-...
 
 | Variable | Description |
 |----------|-------------|
+| `SEMGREP_COMMUNITY` | Set to `false` to disable community rule packs (offline/CI use) |
 | `GITHUB_TOKEN` | Required for `--issue` (creates a GitHub issue with findings) |
 
 ## Usage
