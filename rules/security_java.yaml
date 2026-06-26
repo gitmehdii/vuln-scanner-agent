@@ -1,0 +1,95 @@
+rules:
+  - id: java-sql-injection
+    pattern-either:
+      - pattern: $STMT.execute("..." + $INPUT)
+      - pattern: $STMT.executeQuery("..." + $INPUT)
+      - pattern: $STMT.executeUpdate("..." + $INPUT)
+      - pattern: $STMT.execute(String.format("...", $INPUT))
+    message: "Requête SQL construite par concaténation — utilise PreparedStatement."
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: security
+      cwe: "CWE-89"
+
+  - id: java-command-injection
+    pattern-either:
+      - pattern: Runtime.getRuntime().exec($CMD)
+      - pattern: Runtime.getRuntime().exec(new String[]{$CMD, ...})
+      - pattern: new ProcessBuilder($CMD, ...).start()
+    message: "exec() avec entrée non contrôlée — injection de commande."
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: security
+      cwe: "CWE-78"
+
+  - id: java-weak-hash
+    pattern-either:
+      - pattern: MessageDigest.getInstance("MD5")
+      - pattern: MessageDigest.getInstance("SHA-1")
+      - pattern: MessageDigest.getInstance("SHA1")
+    message: "MD5/SHA1 sont des algorithmes faibles — utilise SHA-256 ou plus."
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: security
+      cwe: "CWE-327"
+
+  - id: java-hardcoded-password
+    patterns:
+      - pattern: $VAR = "..."
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: '(?i)(password|passwd|pwd|secret|apiKey|api_key|token|privateKey|accessKey)'
+    message: "Credential potentiellement hardcodé dans le code source."
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: security
+      cwe: "CWE-798"
+
+  - id: java-deserialization
+    pattern-either:
+      - pattern: new ObjectInputStream($STREAM)
+      - pattern: (Object) $OIS.readObject()
+    message: "Désérialisation Java non sécurisée — peut mener à l'exécution de code (RCE)."
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: security
+      cwe: "CWE-502"
+
+  - id: java-xxe
+    pattern-either:
+      - pattern: DocumentBuilderFactory.newInstance()
+      - pattern: SAXParserFactory.newInstance()
+      - pattern: XMLInputFactory.newInstance()
+    message: "XML parser sans protection XXE — désactive les entités externes explicitement."
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: security
+      cwe: "CWE-611"
+
+  - id: java-path-traversal
+    patterns:
+      - pattern: new File($PATH)
+      - pattern-not: new File("...")
+    message: "Création de File avec chemin potentiellement contrôlé par l'utilisateur."
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: security
+      cwe: "CWE-22"
+
+  - id: java-weak-random
+    pattern-either:
+      - pattern: new Random()
+      - pattern: Math.random()
+    message: "Random/Math.random() non cryptographique — utilise SecureRandom pour les secrets."
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: security
+      cwe: "CWE-338"

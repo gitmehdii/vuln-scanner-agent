@@ -1,0 +1,5 @@
+httpx>=0.27.0
+semgrep>=1.70.0
+ddtrace>=2.0.0      # optional, for Datadog APM
+datadog>=0.49.0     # optional, for custom metrics
+python-dotenv>=1.0.0

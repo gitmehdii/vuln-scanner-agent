@@ -1,0 +1,70 @@
+rules:
+  - id: ruby-eval-injection
+    pattern-either:
+      - pattern: eval($INPUT)
+      - pattern: Kernel.eval($INPUT)
+      - pattern: binding.eval($INPUT)
+    message: "eval() avec entrée non contrôlée — exécution de code arbitraire."
+    severity: ERROR
+    languages: [ruby]
+    metadata:
+      category: security
+      cwe: "CWE-95"
+
+  - id: ruby-command-injection
+    pattern-either:
+      - pattern: system($CMD)
+      - pattern: exec($CMD)
+      - pattern: IO.popen($CMD, ...)
+      - pattern: Open3.popen3($CMD, ...)
+    message: "Exécution de commande avec entrée potentiellement non contrôlée."
+    severity: ERROR
+    languages: [ruby]
+    metadata:
+      category: security
+      cwe: "CWE-78"
+
+  - id: ruby-sql-injection
+    pattern-regex: '\.(where|find_by_sql|order|having|joins|group|select)\s*\(\s*"[^"]*#\{'
+    message: "Requête ActiveRecord avec interpolation Ruby #{} dans un string SQL — injection possible."
+    severity: ERROR
+    languages: [ruby]
+    metadata:
+      category: security
+      cwe: "CWE-89"
+
+  - id: ruby-hardcoded-secret
+    patterns:
+      - pattern: $VAR = "..."
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: '(?i)(password|passwd|secret|api_key|token|private_key|access_key)'
+    message: "Credential potentiellement hardcodé dans le code source."
+    severity: ERROR
+    languages: [ruby]
+    metadata:
+      category: security
+      cwe: "CWE-798"
+
+  - id: ruby-weak-hash
+    pattern-either:
+      - pattern: Digest::MD5.hexdigest($INPUT)
+      - pattern: Digest::MD5.digest($INPUT)
+      - pattern: Digest::SHA1.hexdigest($INPUT)
+      - pattern: Digest::SHA1.digest($INPUT)
+    message: "MD5/SHA1 sont des algorithmes faibles — utilise Digest::SHA256."
+    severity: WARNING
+    languages: [ruby]
+    metadata:
+      category: security
+      cwe: "CWE-327"
+
+  - id: ruby-yaml-unsafe
+    pattern-either:
+      - pattern: YAML.load($INPUT)
+    message: "YAML.load() peut exécuter du code Ruby — utilise YAML.safe_load()."
+    severity: ERROR
+    languages: [ruby]
+    metadata:
+      category: security
+      cwe: "CWE-502"

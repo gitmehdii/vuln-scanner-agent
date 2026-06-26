@@ -1,0 +1,72 @@
+rules:
+  - id: go-sql-injection
+    pattern-either:
+      - pattern: $DB.Query("..." + $INPUT, ...)
+      - pattern: $DB.Exec("..." + $INPUT, ...)
+      - pattern: $DB.QueryRow("..." + $INPUT, ...)
+      - pattern: $DB.Query($Q + $INPUT, ...)
+    message: "Requête SQL construite par concaténation — utilise des requêtes paramétrées (?)."
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: security
+      cwe: "CWE-89"
+
+  - id: go-command-injection
+    patterns:
+      - pattern: exec.Command($CMD, ...)
+      - pattern-not: exec.Command("...", ...)
+    message: "exec.Command() avec variable — injection de commande si l'entrée n'est pas contrôlée."
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: security
+      cwe: "CWE-78"
+
+  - id: go-hardcoded-secret
+    patterns:
+      - pattern: $VAR := "..."
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: '(?i)(password|passwd|secret|apiKey|api_key|token|privateKey|accessKey)'
+    message: "Credential potentiellement hardcodé dans le code source."
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: security
+      cwe: "CWE-798"
+
+  - id: go-weak-hash
+    pattern-either:
+      - pattern: md5.New()
+      - pattern: md5.Sum($X)
+      - pattern: sha1.New()
+      - pattern: sha1.Sum($X)
+    message: "MD5/SHA1 sont des algorithmes faibles — utilise crypto/sha256."
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: security
+      cwe: "CWE-327"
+
+  - id: go-tls-insecure
+    pattern: |
+      &tls.Config{..., InsecureSkipVerify: true, ...}
+    message: "InsecureSkipVerify: true désactive la vérification TLS — vulnérable au MITM."
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: security
+      cwe: "CWE-295"
+
+  - id: go-weak-random
+    pattern-either:
+      - pattern: rand.Int()
+      - pattern: rand.Intn($N)
+      - pattern: rand.Float64()
+    message: "math/rand n'est pas cryptographiquement sûr — utilise crypto/rand pour les secrets."
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: security
+      cwe: "CWE-338"

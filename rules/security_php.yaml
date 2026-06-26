@@ -1,0 +1,86 @@
+rules:
+  - id: php-sql-injection
+    pattern-either:
+      - pattern: mysql_query("..." . $_GET[$KEY])
+      - pattern: mysql_query("..." . $_POST[$KEY])
+      - pattern: mysqli_query($DB, "..." . $_GET[$KEY])
+      - pattern: mysqli_query($DB, "..." . $_POST[$KEY])
+      - pattern: $DB->query("..." . $_GET[$KEY])
+      - pattern: $DB->query("..." . $_POST[$KEY])
+    message: "Requête SQL construite par concaténation avec entrée utilisateur — SQLi."
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: security
+      cwe: "CWE-89"
+
+  - id: php-xss-echo
+    pattern-regex: '(echo|print)\s+\$_(GET|POST|REQUEST|COOKIE)\['
+    message: "Affichage direct d'entrée utilisateur sans échappement — XSS."
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: security
+      cwe: "CWE-79"
+
+  - id: php-command-injection
+    pattern-either:
+      - pattern: system($CMD)
+      - pattern: exec($CMD, ...)
+      - pattern: shell_exec($CMD)
+      - pattern: passthru($CMD)
+      - pattern: popen($CMD, ...)
+    message: "Exécution de commande avec entrée potentiellement non contrôlée."
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: security
+      cwe: "CWE-78"
+
+  - id: php-file-inclusion
+    pattern-either:
+      - pattern: include $_GET[$KEY]
+      - pattern: require $_GET[$KEY]
+      - pattern: include $_POST[$KEY]
+      - pattern: require $_POST[$KEY]
+      - pattern: include_once $_GET[$KEY]
+      - pattern: require_once $_GET[$KEY]
+    message: "Inclusion de fichier avec paramètre contrôlé par l'utilisateur — LFI/RFI."
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: security
+      cwe: "CWE-98"
+
+  - id: php-eval-injection
+    pattern: eval($INPUT)
+    message: "eval() avec entrée potentiellement non contrôlée — exécution de code arbitraire."
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: security
+      cwe: "CWE-95"
+
+  - id: php-hardcoded-password
+    patterns:
+      - pattern: $VAR = "..."
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: '(?i)\$(password|passwd|pwd|secret|api_key|token|db_pass)'
+    message: "Credential potentiellement hardcodé dans le code source."
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: security
+      cwe: "CWE-798"
+
+  - id: php-weak-hash
+    pattern-either:
+      - pattern: md5($INPUT)
+      - pattern: sha1($INPUT)
+    message: "md5()/sha1() sont des fonctions de hachage faibles pour les mots de passe — utilise password_hash()."
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: security
+      cwe: "CWE-327"

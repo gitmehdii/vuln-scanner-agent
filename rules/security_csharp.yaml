@@ -1,0 +1,74 @@
+rules:
+  - id: csharp-sql-injection
+    pattern-either:
+      - pattern: new SqlCommand("..." + $INPUT, ...)
+      - pattern: new SqlCommand($Q + $INPUT, ...)
+      - pattern: $CMD.CommandText = "..." + $INPUT
+      - pattern: new NpgsqlCommand("..." + $INPUT, ...)
+    message: "Requête SQL construite par concaténation — utilise SqlParameter."
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: security
+      cwe: "CWE-89"
+
+  - id: csharp-command-injection
+    pattern-either:
+      - pattern: Process.Start($CMD)
+      - pattern: |
+          new ProcessStartInfo($CMD)
+    message: "Process.Start() avec entrée potentiellement non contrôlée — injection de commande."
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: security
+      cwe: "CWE-78"
+
+  - id: csharp-hardcoded-password
+    patterns:
+      - pattern: $VAR = "..."
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: '(?i)(password|passwd|secret|apiKey|token|privateKey|connectionString)'
+    message: "Credential potentiellement hardcodé dans le code source."
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: security
+      cwe: "CWE-798"
+
+  - id: csharp-weak-hash
+    pattern-either:
+      - pattern: MD5.Create()
+      - pattern: SHA1.Create()
+      - pattern: MD5CryptoServiceProvider()
+      - pattern: SHA1CryptoServiceProvider()
+    message: "MD5/SHA1 sont des algorithmes faibles — utilise SHA256 ou SHA512."
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: security
+      cwe: "CWE-327"
+
+  - id: csharp-xxe
+    pattern-either:
+      - pattern: new XmlDocument()
+      - pattern: XmlReader.Create($INPUT)
+    message: "XML parser sans XmlReaderSettings configuré — potentiellement vulnérable au XXE."
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: security
+      cwe: "CWE-611"
+
+  - id: csharp-deserialization
+    pattern-either:
+      - pattern: new BinaryFormatter()
+      - pattern: new SoapFormatter()
+      - pattern: JsonConvert.DeserializeObject($INPUT)
+    message: "Désérialisation non sécurisée — peut mener à l'exécution de code."
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: security
+      cwe: "CWE-502"

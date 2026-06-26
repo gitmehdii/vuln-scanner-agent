@@ -1,0 +1,149 @@
+rules:
+  - id: js-eval-injection
+    pattern-either:
+      - pattern: eval($X)
+      - pattern: new Function($X)
+    message: "eval()/new Function() avec entrée non contrôlée — exécution de code arbitraire."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-95"
+
+  - id: js-innerhtml-xss
+    pattern-either:
+      - pattern: $EL.innerHTML = $INPUT
+      - pattern: $EL.outerHTML = $INPUT
+      - pattern: document.write($INPUT)
+      - pattern: document.writeln($INPUT)
+    message: "Écriture directe dans le DOM sans encodage — vulnérable au XSS."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-79"
+
+  - id: js-hardcoded-secret
+    patterns:
+      - pattern-either:
+          - pattern: const $VAR = "..."
+          - pattern: let $VAR = "..."
+          - pattern: var $VAR = "..."
+          - pattern: $OBJ.$VAR = "..."
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: '(?i)(password|passwd|pwd|secret|api_key|apikey|token|private_key|access_key|auth_key|client_secret)'
+    message: "Credential potentiellement hardcodé dans le code source."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-798"
+
+  - id: js-child-process-injection
+    pattern-either:
+      - pattern: $CP.exec($CMD, ...)
+      - pattern: $CP.execSync($CMD, ...)
+      - pattern: $CP.spawn($CMD, ...)
+      - pattern: $CP.spawnSync($CMD, ...)
+    message: "exec() avec entrée non contrôlée — injection de commande possible."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-78"
+
+  - id: js-sql-injection
+    pattern-either:
+      - pattern: $DB.query("..." + $X, ...)
+      - pattern: $DB.execute("..." + $X, ...)
+      - pattern: $DB.raw("..." + $X, ...)
+      - pattern: $DB.query(`...${$X}...`)
+      - pattern: $DB.execute(`...${$X}...`)
+    message: "Requête SQL construite par concaténation — utilise des requêtes paramétrées."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-89"
+
+  - id: js-path-traversal
+    pattern-either:
+      - pattern: fs.readFile($PATH, ...)
+      - pattern: fs.readFileSync($PATH, ...)
+      - pattern: fs.createReadStream($PATH, ...)
+      - pattern: path.join(__dirname, $INPUT)
+    message: "Lecture de fichier avec chemin potentiellement contrôlé par l'utilisateur."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-22"
+
+  - id: js-weak-crypto
+    pattern-either:
+      - pattern: crypto.createHash("md5")
+      - pattern: crypto.createHash("sha1")
+      - pattern: crypto.createHash('md5')
+      - pattern: crypto.createHash('sha1')
+    message: "MD5/SHA1 sont des algorithmes de hachage faibles — utilise SHA-256 ou plus."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-327"
+
+  - id: js-disable-tls-verify
+    pattern-either:
+      - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+      - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    message: "NODE_TLS_REJECT_UNAUTHORIZED=0 désactive la vérification TLS — vulnérable aux attaques MITM."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-295"
+
+  - id: js-jwt-decode-no-verify
+    pattern: jwt.decode($TOKEN, ...)
+    message: "jwt.decode() ne vérifie pas la signature JWT — utilise jwt.verify()."
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-347"
+
+  - id: js-open-redirect
+    pattern-either:
+      - pattern: res.redirect($URL)
+      - pattern: window.location = $URL
+      - pattern: window.location.href = $URL
+      - pattern: window.location.replace($URL)
+    message: "Redirection avec URL potentiellement contrôlée par l'utilisateur — open redirect."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-601"
+
+  - id: js-prototype-pollution
+    pattern-either:
+      - pattern: Object.assign($TARGET, $INPUT)
+      - pattern: $OBJ["__proto__"] = $INPUT
+      - pattern: $OBJ[__proto__] = $INPUT
+    message: "Prototype pollution — une entrée non filtrée peut corrompre Object.prototype."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-1321"
+
+  - id: js-unsafe-regex
+    pattern-either:
+      - pattern: new RegExp($INPUT, ...)
+    message: "Regex construite depuis une entrée utilisateur — vulnérable au ReDoS."
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: security
+      cwe: "CWE-1333"

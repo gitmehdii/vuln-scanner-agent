@@ -1,0 +1,115 @@
+rules:
+  - id: command-injection-os-system
+    patterns:
+      - pattern: os.system(...)
+    message: "os.system() avec une entrée non contrôlée peut mener à une injection de commande."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-78"
+
+  - id: command-injection-subprocess-shell
+    patterns:
+      - pattern: subprocess.run(..., shell=True, ...)
+      - pattern: subprocess.call(..., shell=True, ...)
+      - pattern: subprocess.Popen(..., shell=True, ...)
+    message: "subprocess avec shell=True est vulnérable à l'injection de commande si l'entrée n'est pas contrôlée."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-78"
+
+  - id: hardcoded-password
+    patterns:
+      - pattern: $VAR = "..."
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: '(?i)(password|passwd|pwd|secret|api_key|apikey|token|auth)'
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: '(?i)(password|passwd|pwd|secret|api_key|apikey|token|auth)'
+    message: "Credential potentiellement hardcodé dans le code source."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-798"
+
+  - id: sql-injection-format
+    patterns:
+      - pattern: $DB.execute("..." % ...)
+      - pattern: $DB.execute("...".format(...))
+      - pattern: $DB.execute(f"...")
+    message: "Construction de requête SQL par concaténation — utilise des paramètres bindés à la place."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-89"
+
+  - id: path-traversal
+    patterns:
+      - pattern: open(os.path.join(..., $USERINPUT), ...)
+      - pattern: open($USERINPUT, ...)
+    message: "Ouverture de fichier avec un chemin potentiellement contrôlé par l'utilisateur."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-22"
+
+  - id: eval-exec-injection
+    patterns:
+      - pattern: eval(...)
+      - pattern: exec(...)
+    message: "eval()/exec() avec une entrée non contrôlée permet l'exécution de code arbitraire."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-95"
+
+  - id: pickle-deserialization
+    patterns:
+      - pattern: pickle.loads(...)
+      - pattern: pickle.load(...)
+    message: "pickle.load() sur des données non fiables permet l'exécution de code arbitraire."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-502"
+
+  - id: yaml-unsafe-load
+    patterns:
+      - pattern: yaml.load(..., ...)
+      - pattern: yaml.load(...)
+    message: "yaml.load() sans Loader=yaml.SafeLoader peut exécuter du code arbitraire. Utilise yaml.safe_load()."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-502"
+
+  - id: requests-verify-disabled
+    patterns:
+      - pattern: requests.$METHOD(..., verify=False, ...)
+    message: "verify=False désactive la validation SSL — vulnérable aux attaques MITM."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-295"
+
+  - id: weak-hash-md5-sha1
+    patterns:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+    message: "MD5/SHA1 sont des algorithmes de hachage faibles. Utilise SHA-256 ou plus."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-327"
