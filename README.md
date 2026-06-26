@@ -55,16 +55,20 @@ scan.py
 
 Tested against 8 tools on 4 intentionally vulnerable apps (no LLM, for fairness):
 
-| Tool | pygoat (pip) | juice-shop (npm) | dvna (npm) | railsgoat (ruby) |
-|------|:---:|:---:|:---:|:---:|
-| **vuln-scanner-agent** | **192** | 54 | 41 | 54 |
-| osv-scanner | 167 | 65 | 52 | 142 |
-| grype | 135 | 62 | 52 | 142 |
-| trivy fs | 135 | 67 | 53 | 55 |
-| npm audit | n/a | 45 | 24 | n/a |
-| bandit (SAST) | 65 | n/a | n/a | n/a |
+| Tool | pygoat (pip) | juice-shop (npm) |
+|------|:---:|:---:|
+| **vuln-scanner-agent** | **223** | **106** |
+| osv-scanner | 167 | 65 |
+| grype | 135 | 62 |
+| trivy fs | 135 | 67 |
+| npm audit | n/a | 45 |
+| bandit (SAST) | 65 | n/a |
 
-With LLM enabled on pygoat: **264 findings** (+72 vs no-LLM), including 64 findings in custom code (IDOR, auth bypass, hardcoded secrets) that no other tool detects.
+_No LLM enrichment, for fairness. Semgrep community packs included._
+
+SAST breakdown for vuln-scanner-agent: pygoat 36 findings (11 custom + 25 community), juice-shop 75 findings (58 custom + 17 community).
+
+With LLM enabled on pygoat: **264+ findings**, including findings in custom code (IDOR, auth bypass, hardcoded secrets) that no other tool detects.
 
 ## Installation
 

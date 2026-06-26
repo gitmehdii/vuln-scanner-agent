@@ -206,16 +206,23 @@ class SASTAgent:
 
             # Community rules often have richer metadata
             metadata = extra.get("metadata", {})
-            cwe = metadata.get("cwe", [])
-            if isinstance(cwe, str):
-                cwe = [cwe]
-            description = extra.get("message", "")
+            raw_cwe = metadata.get("cwe", [])
+            if isinstance(raw_cwe, str):
+                raw_cwe = [raw_cwe]
+            # Keep only well-formed CWE entries (e.g. "CWE-78" or "CWE-78: ...")
+            cwe = [c for c in raw_cwe if c and re.match(r"CWE-\d+", c)]
+
+            message = extra.get("message", "")
+            # Prepend CWE so it survives the description length cap
             if cwe:
-                description += f"\n\nCWE: {', '.join(cwe)}"
+                cwe_str = ", ".join(c.split(":")[0] for c in cwe)  # keep "CWE-78" only
+                description = f"[{cwe_str}] {message}"
+            else:
+                description = message
 
             findings.append(Finding(
                 id=rule_id,
-                title=extra.get("message", rule_id)[:120],
+                title=message[:120],
                 description=description[:500],
                 severity=severity,
                 finding_type=FindingType.SAST,
