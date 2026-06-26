@@ -2,6 +2,7 @@
 TriageAgent — deduplicates findings, sorts by severity, optionally adds LLM context.
 """
 
+import asyncio
 import dataclasses
 import os
 import re
@@ -60,9 +61,15 @@ class TriageAgent:
         # LLM enrichment on CRITICAL + HIGH only (skip findings already produced by LLMScanAgent)
         if self.use_llm and self.api_key:
             high_prio = [f for f in deduped if f.severity in LLM_ENRICH_SEVERITIES and f.source != "llm"]
-            logger.info("TriageAgent: LLM enriching", count=len(high_prio))
-            for finding in high_prio[:20]:  # cap at 20 to limit cost
-                finding.llm_context = await self._enrich(finding)
+            to_enrich = high_prio[:50]
+            logger.info("TriageAgent: LLM enriching", count=len(to_enrich))
+            sem = asyncio.Semaphore(8)
+
+            async def enrich_one(finding):
+                async with sem:
+                    finding.llm_context = await self._enrich(finding)
+
+            await asyncio.gather(*[enrich_one(f) for f in to_enrich])
         elif self.use_llm and not self.api_key:
             logger.warning("TriageAgent: no API key found, skipping LLM enrichment. Set OPENROUTER_API_KEY or OPENAI_API_KEY.")
 

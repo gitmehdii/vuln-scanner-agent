@@ -429,15 +429,25 @@ class DepAgent:
                 except (ValueError, TypeError):
                     pass
 
-        # severity[] contains CVSS vector strings (not parseable without the cvss lib)
-        # but occasionally contains a plain numeric score
+        # severity[] contains CVSS vector strings — parse them with the cvss lib
         for sev in vuln.get("severity", []):
+            score_str = str(sev.get("score", ""))
             try:
-                f = float(sev.get("score", ""))
+                f = float(score_str)
                 if 0.0 <= f <= 10.0:
                     return f
             except (ValueError, TypeError):
                 pass
+            if score_str.startswith("CVSS:"):
+                try:
+                    from cvss import CVSS3, CVSS2
+                    sev_type = sev.get("type", "CVSS_V3")
+                    if "V2" in sev_type:
+                        return float(CVSS2(score_str).base_score)
+                    else:
+                        return float(CVSS3(score_str).base_score)
+                except Exception:
+                    pass
 
         return None
 

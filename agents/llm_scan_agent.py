@@ -37,7 +37,7 @@ SKIP_DIRS = {
     "vendor", "static", "media", "public", "assets",
 }
 MAX_FILE_CHARS = 35_000
-MAX_FILES = 20
+MAX_FILES = 30
 CONCURRENCY = 4
 
 # Files that define the security model of an app — read first for context
@@ -263,12 +263,6 @@ class LLMScanAgent:
             for f in repo_path.rglob(f"*{ext}"):
                 score = _file_priority(f)
                 if score < 0:
-                    continue
-                try:
-                    size = f.stat().st_size
-                except OSError:
-                    continue
-                if size > MAX_FILE_CHARS:
                     continue
                 scored.append((score, f))
 

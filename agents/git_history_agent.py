@@ -65,9 +65,9 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern, str]] = [
     # Database URLs with embedded credentials
     ("DB connection string",    re.compile(r"(mysql|postgres|mongodb|redis|amqp)://[^:]+:[^@]+@"), "CRITICAL"),
 
-    # Generic password assignments
+    # Generic password assignments — 16+ chars to cut FP rate
     ("Hardcoded password",      re.compile(
-        r'(?i)(password|passwd|pwd|secret|token|api_key|apikey|auth_key)\s*=\s*["\'][^"\']{8,}["\']'
+        r'(?i)(password|passwd|pwd|secret|api_key|apikey|auth_key)\s*=\s*["\']([^"\']{16,})["\']'
     ), "HIGH"),
 
     # .env file content patterns
@@ -80,8 +80,20 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern, str]] = [
 SKIP_PATTERNS = [
     re.compile(r'(?i)(example|placeholder|changeme|your[_-]?key|insert[_-]?here|xxx+|yyy+|zzz+|<[^>]+>|\*{4,})'),
     re.compile(r'(?i)(test|demo|fake|dummy|sample|mock|fixture)'),
+    re.compile(r'(?i)(none|null|false|true|disabled|default|undefined|n[/\\]?a|not[_\s]?set|to[_\s]?do|fill[_\s]?in|replace[_\s]?with)'),
     re.compile(r'^\+\+\+|^---|^index |^diff |^@@ '),  # git diff headers
 ]
+
+
+def _has_sufficient_entropy(value: str) -> bool:
+    """Return False for low-entropy strings that are likely placeholders, not real secrets."""
+    if len(value) < 12:
+        return False
+    has_upper = any(c.isupper() for c in value)
+    has_lower = any(c.islower() for c in value)
+    has_digit = any(c.isdigit() for c in value)
+    has_special = any(not c.isalnum() for c in value)
+    return sum([has_upper, has_lower, has_digit, has_special]) >= 2
 
 SKIP_EXTENSIONS = {
     ".lock", ".sum", ".mod", ".min.js", ".map",
@@ -165,6 +177,12 @@ def _scan_diff(diff: str, commit_hash: str, commit_date: str, commit_msg: str) -
             m = pattern.search(line)
             if not m:
                 continue
+
+            # For the generic password pattern, reject low-entropy values
+            if name == "Hardcoded password":
+                value = m.group(2) if m.lastindex and m.lastindex >= 2 else m.group(0)
+                if not _has_sufficient_entropy(value):
+                    continue
 
             matched = m.group(0)
             dedup_key = f"{commit_hash[:8]}:{name}:{matched[:20]}"
