@@ -1,6 +1,17 @@
 """
 LLM client — centralized model config, HTTP call, and cost tracking.
 All agents import from here instead of hardcoding model names.
+
+Provider priority:
+  1. OPENAI_BASE_URL → local model (Ollama, LM Studio, llama.cpp, vLLM, ...)
+  2. OPENROUTER_API_KEY → OpenRouter (DeepSeek V3 / R1)
+  3. OPENAI_API_KEY → OpenAI (gpt-4o-mini / gpt-4o)
+
+Local model env vars:
+  OPENAI_BASE_URL          Base URL of the local server, e.g. http://localhost:11434/v1
+  LOCAL_MODEL              Model name for analysis tasks (default: llama3.2)
+  LOCAL_REASONING_MODEL    Model name for reasoning tasks (default: same as LOCAL_MODEL)
+  OPENAI_API_KEY           API key if the local server requires one (optional)
 """
 
 import os
@@ -24,6 +35,7 @@ _PRICING: dict[str, dict[str, float]] = {
     "deepseek/deepseek-r1":   {"input": 0.55,  "output": 2.19},
     "gpt-4o":                 {"input": 5.00,  "output": 15.00},
     "gpt-4o-mini":            {"input": 0.15,  "output": 0.60},
+    # Local models run for free
 }
 
 
@@ -64,12 +76,26 @@ cost_tracker = _CostTracker()
 
 
 def get_api_config() -> tuple[str, str]:
-    """Return (url, api_key) based on available env vars."""
+    """Return (chat_completions_url, api_key) based on available env vars."""
+    if os.getenv("OPENAI_BASE_URL"):
+        base = os.getenv("OPENAI_BASE_URL").rstrip("/")
+        key = os.getenv("OPENAI_API_KEY", "local")
+        return f"{base}/chat/completions", key
     if os.getenv("OPENROUTER_API_KEY"):
         return "https://openrouter.ai/api/v1/chat/completions", os.getenv("OPENROUTER_API_KEY")
-    elif os.getenv("OPENAI_API_KEY"):
+    if os.getenv("OPENAI_API_KEY"):
         return "https://api.openai.com/v1/chat/completions", os.getenv("OPENAI_API_KEY")
     return "", ""
+
+
+def _resolve_model(reasoning: bool) -> str:
+    """Return the model name to use for a given call type."""
+    if os.getenv("OPENAI_BASE_URL"):
+        fast = os.getenv("LOCAL_MODEL", "llama3.2")
+        return os.getenv("LOCAL_REASONING_MODEL", fast) if reasoning else fast
+    if os.getenv("OPENROUTER_API_KEY"):
+        return REASONING_MODEL if reasoning else FAST_MODEL
+    return "gpt-4o" if reasoning else "gpt-4o-mini"
 
 
 async def llm_call(
@@ -80,15 +106,19 @@ async def llm_call(
     temperature: float = 0.1,
     timeout: int = 60,
 ) -> str:
-    """Single LLM call. reasoning=True uses R1, False uses V3."""
+    """Single LLM call. reasoning=True uses the reasoning model, False uses the fast model."""
     url, key = get_api_config()
-    if not key:
-        raise RuntimeError("No API key found. Set OPENROUTER_API_KEY or OPENAI_API_KEY.")
+    if not url:
+        raise RuntimeError(
+            "No LLM configured. Set OPENROUTER_API_KEY, OPENAI_API_KEY, "
+            "or OPENAI_BASE_URL (for local models)."
+        )
 
-    if os.getenv("OPENROUTER_API_KEY"):
-        model = REASONING_MODEL if reasoning else FAST_MODEL
-    else:
-        model = "gpt-4o" if reasoning else "gpt-4o-mini"
+    model = _resolve_model(reasoning)
+
+    # Local servers are often slower — give them more time
+    if os.getenv("OPENAI_BASE_URL"):
+        timeout = max(timeout, 120)
 
     messages = []
     if system:

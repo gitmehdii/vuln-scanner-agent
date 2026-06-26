@@ -81,14 +81,45 @@ External tools (optional, extend coverage):
 
 ```bash
 cp .env.example .env
-# Edit .env and add your OPENROUTER_API_KEY
 ```
 
-| Variable | Required | Description |
-|----------|:--------:|-------------|
-| `OPENROUTER_API_KEY` | For LLM features | DeepSeek V3/R1 via OpenRouter |
-| `OPENAI_API_KEY` | Alternative | OpenAI instead of OpenRouter |
-| `GITHUB_TOKEN` | For `--issue` | Creates GitHub issue with findings |
+Three options for the LLM backend (priority order):
+
+### Option 1 - Local model (Ollama, LM Studio, llama.cpp, vLLM)
+
+Any server that exposes an OpenAI-compatible `/v1` API works. No API key needed.
+
+```bash
+# Ollama
+OPENAI_BASE_URL=http://localhost:11434/v1
+LOCAL_MODEL=qwen2.5:14b
+
+# Optional: separate model for reasoning tasks (PentestAgent)
+# Defaults to LOCAL_MODEL if not set
+LOCAL_REASONING_MODEL=deepseek-r1:8b
+```
+
+Recommended models by task:
+- Analysis (fast): `qwen2.5:14b`, `mistral:7b`, `llama3.2:3b`
+- Reasoning (pentest): `deepseek-r1:8b`, `qwen2.5:14b`
+
+### Option 2 - OpenRouter (DeepSeek V3/R1)
+
+```bash
+OPENROUTER_API_KEY=sk-or-v1-...
+```
+
+### Option 3 - OpenAI
+
+```bash
+OPENAI_API_KEY=sk-...
+```
+
+### Other variables
+
+| Variable | Description |
+|----------|-------------|
+| `GITHUB_TOKEN` | Required for `--issue` (creates a GitHub issue with findings) |
 
 ## Usage
 
